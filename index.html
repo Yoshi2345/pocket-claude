@@ -2,113 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pocket Claude</title>
-<meta name="description" content="Claude APIとWeb検索ツールを使う、iPhone向けのチャットアプリ">
-<meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F131A" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Pocket Claude">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="style.css">
 <script type="module" src="app.js"></script>
 </head>
 <body>
-<div class="app">
-  <header class="top">
-    <div class="brand">
-      <h1>Pocket Claude</h1>
-      <span class="badge" id="modelBadge">Opus 5.5</span>
-    </div>
-    <div class="actions">
-      <button type="button" class="icon-btn" id="newChat" aria-label="新しい会話">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-      <button type="button" class="icon-btn" id="openSettings" aria-label="設定">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
-      </button>
-    </div>
-  </header>
+<main id="log"></main>
 
-  <main class="thread" id="thread">
-    <section class="welcome" id="welcome">
-      <h2>調べて、答える。</h2>
-      <p>Claude APIで動くチャットです。最新の情報はWeb検索で調べてから答え、出典も表示します。</p>
-      <div class="examples">
-        <button type="button" data-example>今日の東京の天気は？</button>
-        <button type="button" data-example>今週のAppleのニュースを3つ教えて</button>
-        <button type="button" data-example>1,280円の3割引はいくら？</button>
-        <button type="button" data-example>「牛乳を買う」をメモしておいて</button>
-      </div>
-    </section>
-    <div class="list" id="list"></div>
-    <div class="notices" id="notices" aria-live="polite"></div>
-  </main>
+<form id="keyForm" hidden>
+  <input id="key" type="password" placeholder="APIキー（sk-ant-…）" autocomplete="off">
+  <button>保存</button>
+</form>
 
-  <form class="composer" id="composer" autocomplete="off">
-    <div class="composer-inner">
-      <textarea id="input" rows="1" placeholder="メッセージ" aria-label="メッセージ"></textarea>
-      <button type="submit" class="send" id="send" aria-label="送信" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-      </button>
-      <button type="button" class="stop" id="stop" aria-label="止める" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
-      </button>
-    </div>
-  </form>
-</div>
-
-<dialog class="sheet" id="settings">
-  <form method="dialog" class="sheet-inner">
-    <header class="sheet-head">
-      <h2>設定</h2>
-      <button type="button" class="text-btn" id="closeSettings">完了</button>
-    </header>
-
-    <section class="field">
-      <label for="apiKey">Anthropic APIキー <span class="key-state" id="keyState"></span></label>
-      <div class="key-row">
-        <input id="apiKey" type="password" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-…">
-        <button type="button" class="text-btn" id="showKey">表示</button>
-      </div>
-      <p class="hint">キーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> で作れます（従量課金）。このiPhoneのブラウザにだけ保存され、Anthropic以外には送られません。</p>
-    </section>
-
-    <section class="field two">
-      <div>
-        <label for="model">モデル</label>
-        <select id="model"></select>
-      </div>
-      <div>
-        <label for="effort">考える深さ</label>
-        <select id="effort"></select>
-      </div>
-    </section>
-    <p class="hint model-hint">Opus＝いちばん賢い／Sonnet＝速くて安め／Haiku＝最速・最安。深く考えるほど時間と料金がかかります。</p>
-
-    <section class="field">
-      <span class="label">ツール</span>
-      <div class="tool-list" id="toolList"></div>
-      <p class="hint">自作ツールは <code>tools.js</code> に書き足せます。</p>
-    </section>
-
-    <section class="field">
-      <label for="system">Claudeへの指示（システムプロンプト）</label>
-      <textarea id="system" rows="5"></textarea>
-      <button type="button" class="text-btn small" id="resetSystem">最初の内容に戻す</button>
-    </section>
-
-    <section class="field danger">
-      <button type="button" class="danger-btn" id="clearAll">この端末のデータをすべて削除</button>
-    </section>
-  </form>
-</dialog>
+<form id="chatForm">
+  <input id="input" type="text" placeholder="メッセージ" enterkeyhint="send" autocomplete="off">
+  <button>送信</button>
+</form>
 </body>
 </html>
