@@ -31,3 +31,4 @@ form input { flex: 1; min-width: 0; font: inherit; padding: 8px 14px; border-rad
 form button { font: inherit; padding: 0 16px; border: 0; border-radius: 20px; background: var(--blue); color: #fff; }
 form button:disabled { opacity: .4; }
 [hidden] { display: none !important; }
+.trace { font: 12px/1.5 ui-monospace, Menlo, monospace; color: GrayText; white-space: pre-wrap; overflow-wrap: anywhere; }

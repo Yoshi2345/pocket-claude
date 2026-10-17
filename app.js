@@ -38,18 +38,32 @@ function add(className, text) {
   return div;
 }
 
-// Claude の返事（途中経過も含む）を文字にする
-function toText(message) {
-  return message.content.map((b) => {
-    if (b.type === "text") return b.text;
-    if (b.type === "server_tool_use" && b.name === "web_search" && b.input?.query) return `［検索：${b.input.query}］\n`;
-    if (b.type === "tool_use") return `［${b.name}］\n`;
-    return "";
-  }).join("");
+// 裏側の動き（ツール登録・呼び出し・結果など）を小さな文字で出す
+function trace(text) {
+  return add("trace", text);
+}
+function short(value, max = 300) {
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-// 引用元のリンクを返事の下に付ける
-function addSources(div, message) {
+// 返ってきたブロック1つ分を、種類ごとに記録する
+function traceBlock(b) {
+  if (b.type === "thinking" || b.type === "redacted_thinking") trace("… 思考（内容は非表示）");
+  else if (b.type === "server_tool_use") trace(`▶ ${b.name}（サーバー）を呼び出し　入力: ${short(b.input)}`);
+  else if (b.type === "tool_use") trace(`▶ ${b.name}（自作）を呼び出し　入力: ${short(b.input)}`);
+  else if (b.type === "web_search_tool_result") {
+    if (Array.isArray(b.content)) {
+      trace(`◀ web_search の結果 ${b.content.length}件\n` + b.content.map((r) => `・${r.title}`).join("\n"));
+    } else {
+      trace(`◀ web_search 失敗: ${b.content?.error_code}`);
+    }
+  } else if (b.type === "fallback") trace(`⇄ ${b.from?.model} → ${b.to?.model} に引き継ぎ`);
+  else if (b.type !== "text") trace(`◀ ${b.type}: ${short(b.content ?? "", 200)}`);
+}
+
+// 引用元のリンクを出す
+function addSources(message) {
   const urls = new Map();
   for (const b of message.content) {
     for (const c of b.citations ?? []) if (c.url) urls.set(c.url, c.title || c.url);
@@ -71,7 +85,7 @@ function addSources(div, message) {
     a.textContent = title;
     box.append(a);
   }
-  div.append(box);
+  log.append(box);
 }
 
 chatForm.addEventListener("submit", async (e) => {
@@ -101,8 +115,8 @@ chatForm.addEventListener("submit", async (e) => {
 async function chat() {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
-  while (true) {
-    const div = add("assistant", "…");
+  for (let round = 1; ; round++) {
+    trace(`→ API に送信（${round}回目、メッセージ${messages.length}件）`);
     const stream = client.beta.messages.stream({
       model: MODEL,
       max_tokens: 64000,
@@ -114,21 +128,28 @@ async function chat() {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
     });
-    stream.on("streamEvent", (_event, snapshot) => { div.textContent = toText(snapshot) || "…"; });
 
-    let message;
-    try {
-      message = await stream.finalMessage();
-    } catch (err) {
-      div.remove();
-      throw err;
-    }
-    div.textContent = toText(message);
-    addSources(div, message);
+    // 本文は届いたそばから表示し、ツールなどのブロックは届き終わったら記録する
+    let bubble = null;
+    stream.on("text", (delta) => {
+      if (!bubble) bubble = add("assistant", "");
+      bubble.textContent += delta;
+      log.scrollTop = log.scrollHeight;
+    });
+    stream.on("contentBlock", (block) => {
+      if (block.type === "text") return;
+      traceBlock(block);
+      bubble = null; // このあとの本文は新しい吹き出しに出す
+    });
+
+    const message = await stream.finalMessage();
+    const u = message.usage;
+    trace(`← 受信 stop_reason: ${message.stop_reason}　トークン 入力${u.input_tokens}（キャッシュ${u.cache_read_input_tokens ?? 0}）/ 出力${u.output_tokens}`);
+    addSources(message);
 
     const toolUses = message.content.filter((b) => b.type === "tool_use");
     if (message.stop_reason === "refusal" || (message.stop_reason === "max_tokens" && toolUses.length)) {
-      div.textContent += "\n（回答を中断しました）";
+      add("error", "回答を中断しました。");
       return;
     }
     messages.push({ role: "assistant", content: message.content });
@@ -138,11 +159,21 @@ async function chat() {
 
     const results = await Promise.all(toolUses.map(async (b) => {
       try {
-        return { type: "tool_result", tool_use_id: b.id, content: await runTool(b.name, b.input) };
+        const content = await runTool(b.name, b.input);
+        trace(`◀ ${b.name} の結果: ${short(content)}`);
+        return { type: "tool_result", tool_use_id: b.id, content };
       } catch (err) {
+        trace(`◀ ${b.name} でエラー: ${err.message ?? err}`);
         return { type: "tool_result", tool_use_id: b.id, is_error: true, content: String(err.message ?? err) };
       }
     }));
     messages.push({ role: "user", content: results });
   }
+}
+
+// 起動したときに、使うモデルと登録したツールを表示する
+trace(`● 起動　モデル: ${MODEL}`);
+for (const t of tools) {
+  if (t.type) trace(`● ツール登録 ${t.name}（サーバー: ${t.type}）`);
+  else trace(`● ツール登録 ${t.name}（自作）\n　説明: ${t.description}\n　引数: ${short(t.input_schema.properties)}`);
 }
