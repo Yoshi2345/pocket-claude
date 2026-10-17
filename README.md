@@ -21,9 +21,8 @@ API キーはその iPhone のブラウザ（localStorage）にだけ保存さ�
 
 ## 公開（GitHub Pages）
 
-公開用リポジトリ **Yoshi2345/pocket-claude**（公開設定）のルートにこのフォルダの中身を置き、
-**Settings → Pages → Build and deployment** で **Source: Deploy from a branch / Branch: main / (root)** を選ぶと、
-https://yoshi2345.github.io/pocket-claude/ で開けるようになります。APIキーはページに含まれません。
+このリポジトリの **Settings → Pages → Build and deployment** で **Source: Deploy from a branch / Branch: main / (root)** を選ぶと、
+https://yoshi2345.github.io/pocket-claude/ で開けるようになります。`main` にコミットするたびに自動で更新されます。APIキーはページに含まれません。
 
 ## ツールの書き足し方
 
