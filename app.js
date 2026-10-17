@@ -42,7 +42,7 @@ function add(className, text) {
 function toText(message) {
   return message.content.map((b) => {
     if (b.type === "text") return b.text;
-    if (b.type === "server_tool_use") return `［検索：${b.input?.query ?? ""}］\n`;
+    if (b.type === "server_tool_use" && b.name === "web_search" && b.input?.query) return `［検索：${b.input.query}］\n`;
     if (b.type === "tool_use") return `［${b.name}］\n`;
     return "";
   }).join("");
@@ -53,6 +53,13 @@ function addSources(div, message) {
   const urls = new Map();
   for (const b of message.content) {
     for (const c of b.citations ?? []) if (c.url) urls.set(c.url, c.title || c.url);
+  }
+  // 引用が付かなかったときは、検索で見つかったページを最大5件出す
+  if (!urls.size) {
+    for (const b of message.content) {
+      if (b.type !== "web_search_tool_result" || !Array.isArray(b.content)) continue;
+      for (const r of b.content) if (r.url && urls.size < 5) urls.set(r.url, r.title || r.url);
+    }
   }
   if (!urls.size) return;
   const box = document.createElement("div");
