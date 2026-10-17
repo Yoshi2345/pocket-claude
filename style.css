@@ -1,27 +1,33 @@
+/* light dark = iPhoneの設定に合わせてダークモードにも対応。--blue はアクセント色 */
 :root { color-scheme: light dark; --blue: #2350D3; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+/* 画面全体：上から 会話欄 → 入力欄 の縦並び */
 body {
   display: flex; flex-direction: column; height: 100dvh;
   font: 16px/1.6 system-ui, -apple-system, "Hiragino Sans", sans-serif;
   background: Canvas; color: CanvasText;
 }
 
-/* 会話 */
+/* 会話欄（残りの高さを全部使い、はみ出たらスクロール）。safe-area はノッチを避ける余白 */
 #log {
   flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
 }
+/* 自分の発言：右寄せの青い吹き出し */
 .user {
   align-self: flex-end; max-width: 85%; padding: 8px 14px; border-radius: 18px;
   background: var(--blue); color: #fff; white-space: pre-wrap;
 }
+/* Claudeの返事 */
 .assistant { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* エラー表示 */
 .error { color: #D0402B; }
+/* 出典リンク */
 .sources { display: flex; flex-direction: column; font-size: 13px; }
 a { color: var(--blue); }
 
-/* 入力欄 */
+/* 入力欄（下端はホームバーを避ける余白） */
 form {
   display: flex; gap: 8px;
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
@@ -30,5 +36,7 @@ form {
 form input { flex: 1; min-width: 0; font: inherit; padding: 8px 14px; border-radius: 20px; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); }
 form button { font: inherit; padding: 0 16px; border: 0; border-radius: 20px; background: var(--blue); color: #fff; }
 form button:disabled { opacity: .4; }
+/* hidden 属性が付いた部品は表示しない */
 [hidden] { display: none !important; }
+/* 裏側の動きのログ：小さい灰色の等幅文字 */
 .trace { font: 12px/1.5 ui-monospace, Menlo, monospace; color: GrayText; white-space: pre-wrap; overflow-wrap: anywhere; }

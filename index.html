@@ -4,17 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pocket Claude</title>
-<link rel="stylesheet" href="style.css">
-<script type="module" src="app.js"></script>
+<link rel="stylesheet" href="style.css">          <!-- 見た目 -->
+<script type="module" src="app.js"></script>     <!-- 動き -->
 </head>
 <body>
+<!-- 会話欄：吹き出しやログは app.js がここに追加する -->
 <main id="log"></main>
 
+<!-- APIキーの入力欄（キーが未保存のときだけ表示） -->
 <form id="keyForm" hidden>
   <input id="key" type="password" placeholder="APIキー（sk-ant-…）" autocomplete="off">
   <button>保存</button>
 </form>
 
+<!-- メッセージの入力欄 -->
 <form id="chatForm">
   <input id="input" type="text" placeholder="メッセージ" enterkeyhint="send" autocomplete="off">
   <button>送信</button>
